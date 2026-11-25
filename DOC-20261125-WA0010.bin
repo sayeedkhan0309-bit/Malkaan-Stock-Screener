@@ -1,0 +1,45 @@
+name: Refresh GFS Dashboard
+
+on:
+  workflow_dispatch:
+  # NSE regular session: 09:15-15:30 India time (UTC+5:30), weekdays.
+  # GitHub Actions cron uses UTC.
+  schedule:
+    - cron: "45 3 * * 1-5"
+    - cron: "*/15 4-9 * * 1-5"
+    - cron: "0 10 * * 1-5"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run GFS extraction
+        run: python gfs_dashboard.py
+
+      - name: Upload latest dashboard files
+        uses: actions/upload-artifact@v4
+        with:
+          name: gfs-dashboard-latest
+          path: |
+            gfs_dashboard_latest.xlsx
+            gfs_dashboard_latest.json
+          if-no-files-found: error
+          retention-days: 7
